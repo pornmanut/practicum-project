@@ -4,29 +4,36 @@
 
 #define ON 1
 #define OFF 0
+#define H_RED 5
+#define H_YELLOW 3
+#define H_GREEN 1
+#define L_RED 0
+#define L_YELLOW 2
+#define L_GREEN 4
+
 
 int main()
 {
     init_peripheral_portB();
     while (1)
     {
-		set_led(0,ON);
+		set_led(H_RED,ON);
 		_delay_ms(500);
-		set_led(0,OFF);
-        set_led(1,ON);
+		set_led(H_RED,OFF);
+        set_led(H_YELLOW,ON);
         _delay_ms(500);
-		set_led(1,OFF);
-        set_led(2,ON);
+		set_led(H_YELLOW,OFF);
+        set_led(H_GREEN,ON);
         _delay_ms(500);
-		set_led(2,OFF);
-		set_led(3,ON);
+		set_led(H_GREEN,OFF);
+		set_led(L_RED,ON);
 		_delay_ms(500);
-		set_led(3,OFF);
-		set_led(4,ON);
+		set_led(L_RED,OFF);
+		set_led(L_YELLOW,ON);
 		_delay_ms(500);
-		set_led(4,OFF);
-		set_led(5,ON);
+		set_led(L_YELLOW,OFF);
+		set_led(L_GREEN,ON);
 		_delay_ms(500);
-		set_led(5,OFF);
+		set_led(L_GREEN,OFF);
     }
 }
