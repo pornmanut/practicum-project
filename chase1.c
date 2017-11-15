@@ -4,12 +4,13 @@
 
 #define ON 1
 #define OFF 0
-#define H_RED PB5
-#define H_YELLOW PB3
-#define H_GREEN PB1
-#define L_RED PB0
-#define L_YELLOW PB2
-#define L_GREEN PB4
+
+#define LED_H1 PB5
+#define LED_H2 PB3
+#define LED_H3 PB1
+#define LED_L1 PB0
+#define LED_L2 PB2
+#define LED_L3 PB4
 #define LED_AUTO PC5
 #define LED_MANUAL PC3
 
@@ -26,23 +27,23 @@ int main()
 		set_led_portC(LED_MANUAL,ON);
 		_delay_ms(500);
 		set_led_portC(LED_MANUAL,OFF);
-		set_led_portB(H_RED,ON);
+		set_led_portB(LED_H1,ON);
 		_delay_ms(500);
-		set_led_portB(H_RED,OFF);
-        set_led_portB(H_YELLOW,ON);
+		set_led_portB(LED_H1,OFF);
+        set_led_portB(LED_H2,ON);
         _delay_ms(500);
-		set_led_portB(H_YELLOW,OFF);
-        set_led_portB(H_GREEN,ON);
+		set_led_portB(LED_H2,OFF);
+        set_led_portB(LED_H3,ON);
         _delay_ms(500);
-		set_led_portB(H_GREEN,OFF);
-		set_led_portB(L_RED,ON);
+		set_led_portB(LED_H3,OFF);
+		set_led_portB(LED_L1,ON);
 		_delay_ms(500);
-		set_led_portB(L_RED,OFF);
-		set_led_portB(L_YELLOW,ON);
+		set_led_portB(LED_L1,OFF);
+		set_led_portB(LED_L2,ON);
 		_delay_ms(500);
-		set_led_portB(L_YELLOW,OFF);
-		set_led_portB(L_GREEN,ON);
+		set_led_portB(LED_L2,OFF);
+		set_led_portB(LED_L3,ON);
 		_delay_ms(500);
-		set_led_portB(L_GREEN,OFF);
+		set_led_portB(LED_L3,OFF);
     }
 }
