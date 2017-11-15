@@ -8,13 +8,18 @@ void init_peripheral_portB()
 	//turn off all led at start;
 	PORTB = 0b00000000;
 }
-void set_led(uint8_t pin,uint8_t state)
+void init_peripheral_portC()
+{
+	DDRC = 0b00101000;
+	PORTC = 0b00000000;
+}
+void set_led_portB(uint8_t pin,uint8_t state)
 {
 	if(state) PORTB |= (1<<pin);
 	else PORTB &= !(1<<pin);
 } 
-void set_led_value(uint8_t value)
+void set_led_portC(uint8_t pin,uint8_t state)
 {
-	PORTB &= ~(7);
-	PORTB |= (value&7);
+	if(state) PORTC |= (1<<pin);
+	else PORTC &= !(1<<pin);
 }
