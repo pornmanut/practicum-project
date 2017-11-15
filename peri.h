@@ -1,4 +1,5 @@
-//#define IS_SWITCH_PRESSED() !(PINC & (1<<PC3))
+#define IS_AUTOSWITCH_PRESSED() !(PINC & (1<<PC2))
+#define IS_MANUALSWITCH_PRESSED() !(PINC & (1<<PC4))
 
 //uint16_t read_adc(uint8_t channel);
 void init_peripheral_portB();

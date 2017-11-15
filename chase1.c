@@ -17,33 +17,16 @@
 
 int main()
 {
-    init_peripheral_portB();
+	init_peripheral_portB();
 	init_peripheral_portC();
     while (1)
     {
+		while(!IS_SWITCH_PRESSED());	
+		_delay_ms(10);
 		set_led_portC(LED_AUTO,ON);
-		_delay_ms(500);
+		while(IS_SWITCH_PRESSED());
+		_delay_ms(10);
 		set_led_portC(LED_AUTO,OFF);
-		set_led_portC(LED_MANUAL,ON);
 		_delay_ms(500);
-		set_led_portC(LED_MANUAL,OFF);
-		set_led_portB(LED_H1,ON);
-		_delay_ms(500);
-		set_led_portB(LED_H1,OFF);
-        set_led_portB(LED_H2,ON);
-        _delay_ms(500);
-		set_led_portB(LED_H2,OFF);
-        set_led_portB(LED_H3,ON);
-        _delay_ms(500);
-		set_led_portB(LED_H3,OFF);
-		set_led_portB(LED_L1,ON);
-		_delay_ms(500);
-		set_led_portB(LED_L1,OFF);
-		set_led_portB(LED_L2,ON);
-		_delay_ms(500);
-		set_led_portB(LED_L2,OFF);
-		set_led_portB(LED_L3,ON);
-		_delay_ms(500);
-		set_led_portB(LED_L3,OFF);
     }
 }
