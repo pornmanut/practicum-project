@@ -1,33 +1,51 @@
 #include <avr/io.h>
 #include <util/delay.h>
 
-void init_peripheral_portB()
+void init_peripheral()
 {
-	//set all portb output only 6 port led;
+	/*	PORTB
+	 *	LED PB0 PB1 PB2 PB3 PB4 PB5
+	 *
+	 */
+
 	DDRB = 0b00111111;
-	//turn off all led at start;
 	PORTB = 0b00000000;
-}
-void init_peripheral_portC()
-{
+
+	/*	PORTC
+	 *	LED PC3 PC5
+	 *	SWITCH PC2 PC4 NO EXTRANAL PULL-UP
+	 */ 
+	
 	DDRC = 0b00101000;
 	PORTC = 0b00000000;
-}
-void init_peripheral_portD()
-{
+
+	/*	PORTD
+	 *	MOTOR PD1 PD6
+	 *
+	 */
+
 	DDRD = 0b1000010;
 	PORTD = 0;
 }
+
 void set_led_portB(uint8_t pin,uint8_t state)
 {
 	if(state) PORTB |= (1<<pin);
-	else PORTB &= !(1<<pin);
-} 
+	else PORTB &= ~(1<<pin);
+}
+ 
 void set_led_portC(uint8_t pin,uint8_t state)
 {
 	if(state) PORTC |= (1<<pin);
-	else PORTC &= !(1<<pin);
+	else PORTC &= ~(1<<pin);
 }
+
+/*	void set_motor(uint8_t state)
+ *	0 TURNOFF
+ *	1 MOVE_FORWARD
+ *	2 MOVE_BACKWARD
+ */
+
 void set_motor(uint8_t state)
 {
 	PORTD &= !0b1000010;
