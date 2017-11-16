@@ -14,8 +14,8 @@ void init_peripheral()
 	/*	PORTC
 	 *	LED PC3 PC5
 	 *	SWITCH PC2 PC4 NO EXTRANAL PULL-UP
-	 */ 
-	
+	 *	Light PC1
+	 */
 	DDRC = 0b00101000;
 	PORTC = 0b00000000;
 
@@ -68,5 +68,5 @@ uint16_t read_adc(uint8_t channel)
 
 uint16_t read_light()
 {
-	return read_adc((1<<PC1));
+	return read_adc((PC1));
 }
