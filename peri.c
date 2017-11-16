@@ -48,7 +48,7 @@ void set_led_portC(uint8_t pin,uint8_t state)
 
 void set_motor(uint8_t state)
 {
-	PORTD &= !0b1000010;
+	PORTD &= ~0b1000010;
 	switch(state){
 	case 1: PORTD |= (1<<1);
 			break;

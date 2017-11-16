@@ -34,8 +34,11 @@ struct pt pt_taskLColor;
 struct pt pt_taskAutoSwitch;
 struct pt pt_taskManualSwitch;
 struct pt pt_taskReadLight;
+struct pt pt_taskMoveMotor;
 
 uint16_t lightValue = 0;
+uint8_t motorValue = 0;
+
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskHColor(struct pt* pt))
 {
@@ -119,8 +122,9 @@ PT_THREAD(taskManualSwitch(struct pt* pt)){
 		PT_DELAY(pt,10,ts);
 		
 		status = (status+1)%2;
+		motorValue = (motorValue+1)%3;
 		set_led_portC(LED_MANUAL,status);
-
+		
 		PT_WAIT_WHILE(pt,IS_MANUALSWITCH_PRESSED());
 		PT_DELAY(pt,10,ts);
 	}
@@ -143,6 +147,21 @@ PT_THREAD(taskReadLight(struct pt* pt)){
 	PT_END(pt);
 }
 
+/////////////////////////////////////////////////////////////
+PT_THREAD(taskMoveMotor(struct pt* pt)){
+	
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		set_motor(motorValue);
+		PT_DELAY(pt,10,ts);
+	}
+	PT_END(pt);
+	
+}
 int main()
 {
 	init_peripheral();
@@ -154,11 +173,14 @@ int main()
 	PT_INIT(&pt_taskAutoSwitch);
 	PT_INIT(&pt_taskManualSwitch);
 	PT_INIT(&pt_taskReadLight);
+	PT_INIT(&pt_taskMoveMotor);
+
 	for(;;){
 		taskReadLight(&pt_taskReadLight);
 		taskManualSwitch(&pt_taskManualSwitch);
 		taskHColor(&pt_taskHColor);
 		taskLColor(&pt_taskLColor);
 		taskAutoSwitch(&pt_taskAutoSwitch);
+		taskMoveMotor(&pt_taskMoveMotor);
 	}
 }
