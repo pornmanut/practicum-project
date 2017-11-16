@@ -33,7 +33,9 @@ struct pt pt_taskHColor;
 struct pt pt_taskLColor;
 struct pt pt_taskAutoSwitch;
 struct pt pt_taskManualSwitch;
+struct pt pt_taskReadLight;
 
+uint16_t lightValue = 0;
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskHColor(struct pt* pt))
 {
@@ -65,17 +67,9 @@ PT_THREAD(taskLColor(struct pt* pt)){
 
 	for(;;)
 	{
-		set_led_portB(LED_L1,ON);
-		PT_DELAY(pt,300,ts);
-		set_led_portB(LED_L1,OFF);
-		set_led_portB(LED_L2,ON);
-		PT_DELAY(pt,300,ts);
-		set_led_portB(LED_L2,OFF);
-		set_led_portB(LED_L3,ON);
-		PT_DELAY(pt,300,ts);
-		set_led_portB(LED_L3,OFF);
+		if(lightValue > 511)set_led_portB(LED_L1,ON);
+		else set_led_portB(LED_L1,OFF);
 	}
-	
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
@@ -123,6 +117,20 @@ PT_THREAD(taskManualSwitch(struct pt* pt)){
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
+PT_THREAD(taskReadLight(struct pt* pt)){
+	
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		lightValue = read_light();
+		PT_DELAY(pt,10,ts);
+	}
+	
+	PT_END(pt);
+}
 
 int main()
 {
@@ -134,11 +142,12 @@ int main()
 	PT_INIT(&pt_taskLColor);
 	PT_INIT(&pt_taskAutoSwitch);
 	PT_INIT(&pt_taskManualSwitch);
-	
+	PT_INIT(&pt_taskReadLight);
 	for(;;){
 		taskHColor(&pt_taskHColor);
 		taskLColor(&pt_taskLColor);
 		taskAutoSwitch(&pt_taskAutoSwitch);
 		taskManualSwitch(&pt_taskManualSwitch);
+		taskReadLight(&pt_taskReadLight);
 	}
 }

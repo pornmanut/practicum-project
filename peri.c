@@ -56,3 +56,17 @@ void set_motor(uint8_t state)
 			break;
 	}	
 }
+
+uint16_t read_adc(uint8_t channel)
+{
+	ADMUX = (0<<REFS1) | (1<<REFS0) | (0<<ADLAR) | (channel & 0b1111);
+	ADCSRA = (1<<ADEN) | (1<<ADPS2) | (1<<ADPS1)| (1<<ADPS0) | (1<<ADSC);
+
+	while((ADCSRA & (1<<ADSC)));
+	return ADCL + ADCH*256;
+}
+
+uint16_t read_light()
+{
+	return read_adc((1<<PC1));
+}
