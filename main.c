@@ -35,14 +35,10 @@
 #define MEDIUM 2
 #define HIGH 3
 
-struct pt pt_taskHColor;
 struct pt pt_taskLColor;
 struct pt pt_taskAutoSwitch;
 struct pt pt_taskManualSwitch;
 struct pt pt_taskReadLight;
-struct pt pt_taskMoveMotor;
-struct pt pt_taskReadTrackerLeft;
-struct pt pt_taskReadTrackerRight;
 struct pt pt_taskCheckLight;
 struct pt pt_taskCloseCurtain;
 
@@ -130,12 +126,12 @@ PT_THREAD(taskCloseCurtain(struct pt* pt))
 
 	for(;;)
 	{
+		set_motor(0);
 		PT_WAIT_UNTIL(pt,lightState=HIGH);
 		PT_DELAY(pt,10,ts);
 		set_motor(1);
 		PT_WAIT_WHILE(pt,IS_TRACKER_LEFT());
 		PT_DELAY(pt,10,ts);
-		set_motor(0);
 	}
 
 	PT_END(pt);
@@ -217,14 +213,9 @@ int main()
 	for(;;)
 	{
 		taskReadLight(&pt_taskReadLight);
-		/*	
 		taskManualSwitch(&pt_taskManualSwitch);
 		taskLColor(&pt_taskLColor);
 		taskAutoSwitch(&pt_taskAutoSwitch);
-		taskMoveMotor(&pt_taskMoveMotor);
-		taskReadTrackerLeft(&pt_taskReadTrackerLeft);
-		taskReadTrackerRight(&pt_taskReadTrackerRight);
-		*/
 		taskCheckLight(&pt_taskCheckLight);
 		taskCloseCurtain(&pt_taskCloseCurtain);
 	}
