@@ -31,12 +31,15 @@
 	ts = timer_millis();\
 	PT_WAIT_WHILE(pt,timer_millis()-ts <(ms));
 
+
 #define LOW 1
 #define MEDIUM 2
 #define HIGH 3
 
 #define OPEN 0
 #define CLOSE 1
+#define AUTOSTATE 0
+#define MANUALSTATE 1
 
 struct pt pt_taskLColor;
 struct pt pt_taskReadLight;
@@ -44,10 +47,16 @@ struct pt pt_taskCheckLight;
 struct pt pt_taskCloseCurtain;
 struct pt pt_taskOpenCurtain;
 struct pt pt_taskShowCurrentState;
+struct pt pt_taskAutoState;
 
 uint16_t lightValue = 0;
-uint8_t lightState = 0;
-uint8_t currentState = 0;
+uint8_t lightState = LOW;
+uint8_t currentState = OPEN;
+uint8_t state = AUTOSTATE;
+#define AUTO_IS_OPEN() (lightState==HIGH && currentState==OPEN && state==AUTOSTATE)
+#define MANUAL_IS_OPEN() (currentState==OPEN && state==MANUALSTATE)
+#define AUTO_IS_CLOSE() (lightState==LOW && currentState==CLOSE && state==AUTOSTATE)
+#define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE)
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskHColor(struct pt* pt))
 {
@@ -91,7 +100,9 @@ PT_THREAD(taskLColor(struct pt* pt)){
 						set_led_portB(LED_L2,OFF);
 					break;
 		}
+		set_led_portB(LED_H1,IS_TRACKER_RIGHT());
 		PT_DELAY(pt,100,ts);
+
 	}
 	PT_END(pt);
 }
@@ -127,7 +138,7 @@ PT_THREAD(taskCloseCurtain(struct pt* pt))
 	for(;;)
 	{
 		set_motor(0);
-		PT_WAIT_UNTIL(pt,(lightState==HIGH && currentState==OPEN));
+		PT_WAIT_UNTIL(pt,AUTO_IS_OPEN() || MANUAL_IS_OPEN());
 		PT_DELAY(pt,10,ts);
 		set_motor(1);
 		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
@@ -162,7 +173,7 @@ PT_THREAD(taskOpenCurtain(struct pt* pt))
 	for(;;)
 	{
 		set_motor(0);
-		PT_WAIT_UNTIL(pt,(lightState==LOW && currentState==CLOSE));
+		PT_WAIT_UNTIL(pt,AUTO_IS_CLOSE() || MANUAL_IS_CLOSE());
 		PT_DELAY(pt,10,ts);
 		set_motor(2);
 		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
