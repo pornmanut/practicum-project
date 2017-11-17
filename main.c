@@ -35,18 +35,19 @@
 #define MEDIUM 2
 #define HIGH 3
 
+#define OPEN 0
+#define CLOSE 1
+
 struct pt pt_taskLColor;
-struct pt pt_taskAutoSwitch;
-struct pt pt_taskManualSwitch;
 struct pt pt_taskReadLight;
 struct pt pt_taskCheckLight;
 struct pt pt_taskCloseCurtain;
-
-
+struct pt pt_taskOpenCurtain;
+struct pt pt_taskShowCurrentState;
 
 uint16_t lightValue = 0;
 uint8_t lightState = 0;
-
+uint8_t currentState = 0;
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskHColor(struct pt* pt))
 {
@@ -125,13 +126,13 @@ PT_THREAD(taskCloseCurtain(struct pt* pt))
 
 	for(;;)
 	{
-		PT_DELAY(pt,10,ts);
 		set_motor(0);
-		PT_WAIT_UNTIL(pt,(lightState==HIGH));
+		PT_WAIT_UNTIL(pt,(lightState==HIGH && currentState==OPEN));
 		PT_DELAY(pt,10,ts);
 		set_motor(1);
 		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
 		PT_DELAY(pt,10,ts);
+		currentState = CLOSE;
 	}
 
 	PT_END(pt);
@@ -152,6 +153,46 @@ PT_THREAD(taskReadLight(struct pt* pt)){
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
+PT_THREAD(taskOpenCurtain(struct pt* pt))
+{
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		set_motor(0);
+		PT_WAIT_UNTIL(pt,(lightState==LOW && currentState==CLOSE));
+		PT_DELAY(pt,10,ts);
+		set_motor(2);
+		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
+		PT_DELAY(pt,10,ts);
+		currentState = OPEN;
+	}
+
+	PT_END(pt);
+}
+/////////////////////////////////////////////////////////////
+PT_THREAD(taskShowCurrentState(struct pt* pt))
+{
+	static uint32_t ts;
+	
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		switch(currentState){
+		case OPEN:	set_led_portC(LED_MANUAL,ON);
+					break;
+		case CLOSE: set_led_portC(LED_MANUAL,OFF);
+					break;
+		}
+		PT_DELAY(pt,10,ts);
+	}
+	
+	PT_END(pt);
+}
+/////////////////////////////////////////////////////////////
 int main()
 {
 	init_peripheral();
@@ -162,6 +203,8 @@ int main()
 	PT_INIT(&pt_taskReadLight);
 	PT_INIT(&pt_taskCheckLight);
 	PT_INIT(&pt_taskCloseCurtain);
+	PT_INIT(&pt_taskOpenCurtain);
+	PT_INIT(&pt_taskShowCurrentState);
 
 	for(;;)
 	{
@@ -169,5 +212,7 @@ int main()
 		taskCheckLight(&pt_taskCheckLight);
 		taskLColor(&pt_taskLColor);
 		taskCloseCurtain(&pt_taskCloseCurtain);
+		taskOpenCurtain(&pt_taskOpenCurtain);
+		taskShowCurrentState(&pt_taskShowCurrentState);
 	}
 }
