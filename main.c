@@ -50,17 +50,30 @@
 struct pt pt_taskReadWriteColor;
 struct pt pt_taskControlCurtain;
 struct pt pt_taskAutoSwitch;
+struct pt pt_taskManualSwitch;
 
 uint8_t lightState = LOW;
 uint8_t currentState = OPEN;
 uint8_t state = AUTOSTATE;
 uint8_t status = OFF;
 
-PT_THREAD(taskManaulSwitch(struct pt* pt)){
+/////////////////////////////////////////////////////////////
+PT_THREAD(taskManualSwitch(struct pt* pt)){
 
 	static uint32_t ts;
 
 	PT_BEGIN(pt);
+	for(;;)
+	{
+		PT_WAIT_UNTIL(pt,IS_MANUALSWITCH_PRESSED());
+		PT_DELAY(pt,50,ts);
+		state = MANUALSTATE;	
+		status = (status+1)%2;
+
+		PT_WAIT_WHILE(pt,IS_MANUALSWITCH_PRESSED());
+		PT_DELAY(pt,50,ts);
+	}
+	PT_END(pt);
 
 }
 /////////////////////////////////////////////////////////////
@@ -165,11 +178,12 @@ int main()
 	PT_INIT(&pt_taskReadWriteColor);
 	PT_INIT(&pt_taskControlCurtain);
 	PT_INIT(&pt_taskAutoSwitch);
-	
+	PT_INIT(&pt_taskManualSwitch);	
 	for(;;)
 	{
 		taskReadWriteColor(&pt_taskReadWriteColor);
 		taskControlCurtain(&pt_taskControlCurtain);
 		taskAutoSwitch(&pt_taskAutoSwitch);
+		taskManualSwitch(&pt_taskManualSwitch);
 	}
 }
