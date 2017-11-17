@@ -47,9 +47,7 @@
 #define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE)
 struct pt pt_taskLColor;
 struct pt pt_taskCheckLight;
-struct pt pt_taskCloseCurtain;
-struct pt pt_taskOpenCurtain;
-struct pt pt_taskShowCurrentState;
+struct pt pt_taskControlCurtain;
 struct pt pt_taskAutoState;
 
 uint8_t lightState = LOW;
@@ -77,6 +75,13 @@ PT_THREAD(taskLColor(struct pt* pt)){
 					break;
 		}
 		set_led_portB(LED_H1,IS_TRACKER_RIGHT());
+
+		switch(currentState){
+		case OPEN:	set_led_portC(LED_MANUAL,ON);
+					break;
+		case CLOSE: set_led_portC(LED_MANUAL,OFF);
+					break;
+		}
 		PT_DELAY(pt,100,ts);
 
 	}
@@ -104,7 +109,7 @@ PT_THREAD(taskCheckLight(struct pt* pt)){
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
-PT_THREAD(taskCloseCurtain(struct pt* pt))
+PT_THREAD(taskControlCurtain(struct pt* pt))
 {
 	static uint32_t ts;
 
@@ -119,19 +124,7 @@ PT_THREAD(taskCloseCurtain(struct pt* pt))
 		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
 		PT_DELAY(pt,10,ts);
 		currentState = CLOSE;
-	}
-
-	PT_END(pt);
-}
-/////////////////////////////////////////////////////////////
-PT_THREAD(taskOpenCurtain(struct pt* pt))
-{
-	static uint32_t ts;
-
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
+		PT_DELAY(pt,100,ts);
 		set_motor(0);
 		PT_WAIT_UNTIL(pt,AUTO_IS_CLOSE() || MANUAL_IS_CLOSE());
 		PT_DELAY(pt,10,ts);
@@ -144,26 +137,6 @@ PT_THREAD(taskOpenCurtain(struct pt* pt))
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
-PT_THREAD(taskShowCurrentState(struct pt* pt))
-{
-	static uint32_t ts;
-	
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		switch(currentState){
-		case OPEN:	set_led_portC(LED_MANUAL,ON);
-					break;
-		case CLOSE: set_led_portC(LED_MANUAL,OFF);
-					break;
-		}
-		PT_DELAY(pt,10,ts);
-	}
-	
-	PT_END(pt);
-}
-/////////////////////////////////////////////////////////////
 int main()
 {
 	init_peripheral();
@@ -172,16 +145,12 @@ int main()
 
 	PT_INIT(&pt_taskLColor);
 	PT_INIT(&pt_taskCheckLight);
-	PT_INIT(&pt_taskCloseCurtain);
-	PT_INIT(&pt_taskOpenCurtain);
-	PT_INIT(&pt_taskShowCurrentState);
+	PT_INIT(&pt_taskControlCurtain);
 
 	for(;;)
 	{
 		taskCheckLight(&pt_taskCheckLight);
 		taskLColor(&pt_taskLColor);
-		taskCloseCurtain(&pt_taskCloseCurtain);
-		taskOpenCurtain(&pt_taskOpenCurtain);
-		taskShowCurrentState(&pt_taskShowCurrentState);
+		taskControlCurtain(&pt_taskControlCurtain);
 	}
 }
