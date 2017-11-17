@@ -146,6 +146,7 @@ PT_THREAD(taskControlCurtain(struct pt* pt))
 		PT_WAIT_UNTIL(pt,AUTO_IS_OPEN() || MANUAL_IS_OPEN());
 		PT_DELAY(pt,50,ts);
 		
+		status = OFF;
 		set_motor(1);
 		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
 		PT_DELAY(pt,50,ts);
@@ -157,6 +158,7 @@ PT_THREAD(taskControlCurtain(struct pt* pt))
 		PT_WAIT_UNTIL(pt,AUTO_IS_CLOSE() || MANUAL_IS_CLOSE());
 		PT_DELAY(pt,50,ts);
 		
+		status = OFF;
 		set_motor(2);
 		
 		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
