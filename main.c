@@ -39,10 +39,14 @@ struct pt pt_taskAutoSwitch;
 struct pt pt_taskManualSwitch;
 struct pt pt_taskReadLight;
 struct pt pt_taskMoveMotor;
-struct pt pt_taskReadTracker;
+struct pt pt_taskReadTrackerLeft;
+struct pt pt_taskReadTrackerRight;
+struct pt pt_taskCheckLight;
+struct pt pt_taskCloseCurtain;
 
 uint16_t lightValue = 0;
 uint8_t motorValue = 0;
+uint8_t lightState = 0;
 
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskHColor(struct pt* pt))
@@ -90,6 +94,41 @@ PT_THREAD(taskLColor(struct pt* pt)){
 		PT_DELAY(pt,100,ts);
 	}
 	PT_END(pt);
+}
+PT_THREAD(taskCheckLight(struct pt* pt)){
+	
+	static uint32_t ts;
+	
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		switch((int)lightValue/300){
+			case 1:	lightState = 0;
+					break;
+			case 2: lightState = 1;
+					break;
+			case 3: lightState = 2;
+					break;
+		}
+		PT_DELAY(pt,100,ts);
+	}
+	PT_END(pt);
+}
+PT_THREAD(taskCloseCurtain(struct pt* pt)){
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		PT_WAIT_UNTIL(pt,lightState=2);
+		PT_DELAY(pt,10,ts);
+		set_motor(1);
+		PT_WAIT_WHILE(pt,IS_TRACKER_LEFT());
+		PT_DELAY(pt,10,ts);
+		set_motor(0);
+	}
 }
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskAutoSwitch(struct pt* pt)){
@@ -167,7 +206,7 @@ PT_THREAD(taskMoveMotor(struct pt* pt)){
 	PT_END(pt);
 	
 }
-PT_THREAD(taskReadTracker(struct pt* pt)){
+PT_THREAD(taskReadTrackerLeft(struct pt* pt)){
 	
 	static uint32_t ts;
 
@@ -185,6 +224,24 @@ PT_THREAD(taskReadTracker(struct pt* pt)){
 	
 	PT_END(pt);
 }
+PT_THREAD(taskReadTrackerRight(struct pt* pt)){
+	
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
+		PT_DELAY(pt,10,ts);
+		set_led_portB(LED_H2,ON);
+		PT_WAIT_WHILE(pt,IS_TRACKER_RIGHT());
+		PT_DELAY(pt,10,ts);
+		set_led_portB(LED_H2,OFF);
+	}
+	
+	PT_END(pt);
+}
 int main()
 {
 	init_peripheral();
@@ -196,14 +253,22 @@ int main()
 	PT_INIT(&pt_taskManualSwitch);
 	PT_INIT(&pt_taskReadLight);
 	PT_INIT(&pt_taskMoveMotor);
-	PT_INIT(&pt_taskReadTracker);
+	PT_INIT(&pt_taskReadTrackerLeft);
+	PT_INIT(&pt_taskReadTrackerRight);
+	PT_INIT(&pt_taskCheckLight);
+	PT_INIT(&pt_taskCloseCurtain);
 
 	for(;;){
 		taskReadLight(&pt_taskReadLight);
+		/*	
 		taskManualSwitch(&pt_taskManualSwitch);
 		taskLColor(&pt_taskLColor);
 		taskAutoSwitch(&pt_taskAutoSwitch);
 		taskMoveMotor(&pt_taskMoveMotor);
-		taskReadTracker(&pt_taskReadTracker);
+		taskReadTrackerLeft(&pt_taskReadTrackerLeft);
+		taskReadTrackerRight(&pt_taskReadTrackerRight);
+		*/
+		taskCheckLight(&pt_taskCheckLight);
+		taskCloseCurtain(&pt_taskCloseCurtain);
 	}
 }
