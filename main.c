@@ -47,8 +47,7 @@
 #define AUTO_IS_CLOSE() (lightState==LOW && currentState==CLOSE && state==AUTOSTATE)
 #define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE && status ==ON)
 
-struct pt pt_taskLColor;
-struct pt pt_taskCheckLight;
+struct pt pt_taskReadWriteColor;
 struct pt pt_taskControlCurtain;
 struct pt pt_taskAutoSwitch;
 
@@ -57,7 +56,13 @@ uint8_t currentState = OPEN;
 uint8_t state = AUTOSTATE;
 uint8_t status = OFF;
 
+PT_THREAD(taskManaulSwitch(struct pt* pt)){
 
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+}
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskAutoSwitch(struct pt* pt)){
 	
@@ -78,7 +83,7 @@ PT_THREAD(taskAutoSwitch(struct pt* pt)){
 
 }
 /////////////////////////////////////////////////////////////
-PT_THREAD(taskLColor(struct pt* pt)){
+PT_THREAD(taskReadWriteColor(struct pt* pt)){
 	
 	static uint32_t ts;
 	
@@ -86,6 +91,14 @@ PT_THREAD(taskLColor(struct pt* pt)){
 
 	for(;;)
 	{
+		switch((int)read_light()/300){
+			case 1:	lightState = LOW;
+					break;
+			case 2: lightState = MEDIUM;
+					break;
+			case 3: lightState = HIGH;
+					break;
+		}		
 		switch(lightState){
 			case LOW:	set_led_portB(LED_L1,ON);
 						set_led_portB(LED_L2,OFF);
@@ -104,27 +117,6 @@ PT_THREAD(taskLColor(struct pt* pt)){
 			
 		PT_DELAY(pt,50,ts);
 
-	}
-	PT_END(pt);
-}
-/////////////////////////////////////////////////////////////
-PT_THREAD(taskCheckLight(struct pt* pt)){
-	
-	static uint32_t ts;
-	
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		switch((int)read_light()/300){
-			case 1:	lightState = LOW;
-					break;
-			case 2: lightState = MEDIUM;
-					break;
-			case 3: lightState = HIGH;
-					break;
-		}
-		PT_DELAY(pt,50,ts);
 	}
 	PT_END(pt);
 }
@@ -170,14 +162,13 @@ int main()
 	timer_init();
 	sei();
 
-	PT_INIT(&pt_taskLColor);
-	PT_INIT(&pt_taskCheckLight);
+	PT_INIT(&pt_taskReadWriteColor);
 	PT_INIT(&pt_taskControlCurtain);
 	PT_INIT(&pt_taskAutoSwitch);
+	
 	for(;;)
 	{
-		taskCheckLight(&pt_taskCheckLight);
-		taskLColor(&pt_taskLColor);
+		taskReadWriteColor(&pt_taskReadWriteColor);
 		taskControlCurtain(&pt_taskControlCurtain);
 		taskAutoSwitch(&pt_taskAutoSwitch);
 	}
