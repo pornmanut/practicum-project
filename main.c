@@ -41,44 +41,20 @@
 #define AUTOSTATE 0
 #define MANUALSTATE 1
 
+#define AUTO_IS_OPEN() (lightState==HIGH && currentState==OPEN && state==AUTOSTATE)
+#define MANUAL_IS_OPEN() (currentState==OPEN && state==MANUALSTATE)
+#define AUTO_IS_CLOSE() (lightState==LOW && currentState==CLOSE && state==AUTOSTATE)
+#define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE)
 struct pt pt_taskLColor;
-struct pt pt_taskReadLight;
 struct pt pt_taskCheckLight;
 struct pt pt_taskCloseCurtain;
 struct pt pt_taskOpenCurtain;
 struct pt pt_taskShowCurrentState;
 struct pt pt_taskAutoState;
 
-uint16_t lightValue = 0;
 uint8_t lightState = LOW;
 uint8_t currentState = OPEN;
 uint8_t state = AUTOSTATE;
-#define AUTO_IS_OPEN() (lightState==HIGH && currentState==OPEN && state==AUTOSTATE)
-#define MANUAL_IS_OPEN() (currentState==OPEN && state==MANUALSTATE)
-#define AUTO_IS_CLOSE() (lightState==LOW && currentState==CLOSE && state==AUTOSTATE)
-#define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE)
-/////////////////////////////////////////////////////////////
-PT_THREAD(taskHColor(struct pt* pt))
-{
-	static uint32_t ts;
-	
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		set_led_portB(LED_H1,ON);
-		PT_DELAY(pt,500,ts);
-		set_led_portB(LED_H1,OFF);
-		set_led_portB(LED_H2,ON);
-		PT_DELAY(pt,500,ts);
-		set_led_portB(LED_H2,OFF);
-		set_led_portB(LED_H3,ON);
-		PT_DELAY(pt,500,ts);
-		set_led_portB(LED_H3,OFF);
-	}
-
-	PT_END(pt);
-}
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskLColor(struct pt* pt)){
 	
@@ -115,7 +91,7 @@ PT_THREAD(taskCheckLight(struct pt* pt)){
 
 	for(;;)
 	{
-		switch((int)lightValue/300){
+		switch((int)read_light()/300){
 			case 1:	lightState = LOW;
 					break;
 			case 2: lightState = MEDIUM;
@@ -127,7 +103,6 @@ PT_THREAD(taskCheckLight(struct pt* pt)){
 	}
 	PT_END(pt);
 }
-
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskCloseCurtain(struct pt* pt))
 {
@@ -146,21 +121,6 @@ PT_THREAD(taskCloseCurtain(struct pt* pt))
 		currentState = CLOSE;
 	}
 
-	PT_END(pt);
-}
-/////////////////////////////////////////////////////////////
-PT_THREAD(taskReadLight(struct pt* pt)){
-	
-	static uint32_t ts;
-
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		lightValue = read_light();
-		PT_DELAY(pt,10,ts);
-	}
-	
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
@@ -211,7 +171,6 @@ int main()
 	sei();
 
 	PT_INIT(&pt_taskLColor);
-	PT_INIT(&pt_taskReadLight);
 	PT_INIT(&pt_taskCheckLight);
 	PT_INIT(&pt_taskCloseCurtain);
 	PT_INIT(&pt_taskOpenCurtain);
@@ -219,7 +178,6 @@ int main()
 
 	for(;;)
 	{
-		taskReadLight(&pt_taskReadLight);
 		taskCheckLight(&pt_taskCheckLight);
 		taskLColor(&pt_taskLColor);
 		taskCloseCurtain(&pt_taskCloseCurtain);
