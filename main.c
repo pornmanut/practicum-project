@@ -36,23 +36,47 @@
 #define MEDIUM 2
 #define HIGH 3
 
-#define OPEN 0
-#define CLOSE 1
-#define AUTOSTATE 0
-#define MANUALSTATE 1
+#define CLOSE 0
+#define OPEN 1
+
+#define MANUALSTATE 0
+#define AUTOSTATE 1
 
 #define AUTO_IS_OPEN() (lightState==HIGH && currentState==OPEN && state==AUTOSTATE)
-#define MANUAL_IS_OPEN() (currentState==OPEN && state==MANUALSTATE)
+#define MANUAL_IS_OPEN() (currentState==OPEN && state==MANUALSTATE && status==ON)
 #define AUTO_IS_CLOSE() (lightState==LOW && currentState==CLOSE && state==AUTOSTATE)
-#define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE)
+#define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE && status ==ON)
+
 struct pt pt_taskLColor;
 struct pt pt_taskCheckLight;
 struct pt pt_taskControlCurtain;
-struct pt pt_taskAutoState;
+struct pt pt_taskAutoSwitch;
 
 uint8_t lightState = LOW;
 uint8_t currentState = OPEN;
 uint8_t state = AUTOSTATE;
+uint8_t status = OFF;
+
+
+/////////////////////////////////////////////////////////////
+PT_THREAD(taskAutoSwitch(struct pt* pt)){
+	
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+	for(;;)
+	{
+		PT_WAIT_UNTIL(pt,IS_AUTOSWITCH_PRESSED());
+		PT_DELAY(pt,50,ts);
+		
+		state = (state+1)%2;
+
+		PT_WAIT_WHILE(pt,IS_AUTOSWITCH_PRESSED());
+		PT_DELAY(pt,50,ts);
+	}	
+	PT_END(pt);
+
+}
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskLColor(struct pt* pt)){
 	
@@ -74,15 +98,11 @@ PT_THREAD(taskLColor(struct pt* pt)){
 						set_led_portB(LED_L2,OFF);
 					break;
 		}
-		set_led_portB(LED_H1,IS_TRACKER_RIGHT());
 
-		switch(currentState){
-		case OPEN:	set_led_portC(LED_MANUAL,ON);
-					break;
-		case CLOSE: set_led_portC(LED_MANUAL,OFF);
-					break;
-		}
-		PT_DELAY(pt,100,ts);
+		set_led_portC(LED_MANUAL,currentState);	
+		set_led_portC(LED_AUTO,state);
+			
+		PT_DELAY(pt,50,ts);
 
 	}
 	PT_END(pt);
@@ -104,7 +124,7 @@ PT_THREAD(taskCheckLight(struct pt* pt)){
 			case 3: lightState = HIGH;
 					break;
 		}
-		PT_DELAY(pt,100,ts);
+		PT_DELAY(pt,50,ts);
 	}
 	PT_END(pt);
 }
@@ -119,24 +139,31 @@ PT_THREAD(taskControlCurtain(struct pt* pt))
 	{
 		set_motor(0);
 		PT_WAIT_UNTIL(pt,AUTO_IS_OPEN() || MANUAL_IS_OPEN());
-		PT_DELAY(pt,10,ts);
+		PT_DELAY(pt,50,ts);
+		
 		set_motor(1);
 		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
-		PT_DELAY(pt,10,ts);
+		PT_DELAY(pt,50,ts);
+		
 		currentState = CLOSE;
 		PT_DELAY(pt,100,ts);
 		set_motor(0);
+		
 		PT_WAIT_UNTIL(pt,AUTO_IS_CLOSE() || MANUAL_IS_CLOSE());
-		PT_DELAY(pt,10,ts);
+		PT_DELAY(pt,50,ts);
+		
 		set_motor(2);
+		
 		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
-		PT_DELAY(pt,10,ts);
+		PT_DELAY(pt,50,ts);
 		currentState = OPEN;
 	}
 
 	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
+
+
 int main()
 {
 	init_peripheral();
@@ -146,11 +173,12 @@ int main()
 	PT_INIT(&pt_taskLColor);
 	PT_INIT(&pt_taskCheckLight);
 	PT_INIT(&pt_taskControlCurtain);
-
+	PT_INIT(&pt_taskAutoSwitch);
 	for(;;)
 	{
 		taskCheckLight(&pt_taskCheckLight);
 		taskLColor(&pt_taskLColor);
 		taskControlCurtain(&pt_taskControlCurtain);
+		taskAutoSwitch(&pt_taskAutoSwitch);
 	}
 }
