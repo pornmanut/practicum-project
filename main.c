@@ -31,7 +31,9 @@
 	ts = timer_millis();\
 	PT_WAIT_WHILE(pt,timer_millis()-ts <(ms));
 
-
+#define LOW 1
+#define MEDIUM 2
+#define HIGH 3
 
 struct pt pt_taskHColor;
 struct pt pt_taskLColor;
@@ -43,6 +45,8 @@ struct pt pt_taskReadTrackerLeft;
 struct pt pt_taskReadTrackerRight;
 struct pt pt_taskCheckLight;
 struct pt pt_taskCloseCurtain;
+
+
 
 uint16_t lightValue = 0;
 uint8_t motorValue = 0;
@@ -79,22 +83,23 @@ PT_THREAD(taskLColor(struct pt* pt)){
 
 	for(;;)
 	{
-		switch((int)lightValue/300){
-			case 1:	set_led_portB(LED_L1,ON);
-					set_led_portB(LED_L2,OFF);
+		switch(lightState){
+			case LOW:	set_led_portB(LED_L1,ON);
+						set_led_portB(LED_L2,OFF);
 					break;
-			case 2: set_led_portB(LED_L2,ON);
-					set_led_portB(LED_L1,OFF);
-					set_led_portB(LED_L3,OFF);
+			case MEDIUM:set_led_portB(LED_L2,ON);
+						set_led_portB(LED_L1,OFF);
+						set_led_portB(LED_L3,OFF);
 					break;
-			case 3: set_led_portB(LED_L3,ON);
-					set_led_portB(LED_L2,OFF);
+			case HIGH:	set_led_portB(LED_L3,ON);
+						set_led_portB(LED_L2,OFF);
 					break;
 		}
 		PT_DELAY(pt,100,ts);
 	}
 	PT_END(pt);
 }
+/////////////////////////////////////////////////////////////
 PT_THREAD(taskCheckLight(struct pt* pt)){
 	
 	static uint32_t ts;
@@ -104,31 +109,36 @@ PT_THREAD(taskCheckLight(struct pt* pt)){
 	for(;;)
 	{
 		switch((int)lightValue/300){
-			case 1:	lightState = 0;
+			case 1:	lightState = LOW;
 					break;
-			case 2: lightState = 1;
+			case 2: lightState = MEDIUM;
 					break;
-			case 3: lightState = 2;
+			case 3: lightState = HIGH;
 					break;
 		}
 		PT_DELAY(pt,100,ts);
 	}
 	PT_END(pt);
 }
-PT_THREAD(taskCloseCurtain(struct pt* pt)){
+
+/////////////////////////////////////////////////////////////
+PT_THREAD(taskCloseCurtain(struct pt* pt))
+{
 	static uint32_t ts;
 
 	PT_BEGIN(pt);
 
 	for(;;)
 	{
-		PT_WAIT_UNTIL(pt,lightState=2);
+		PT_WAIT_UNTIL(pt,lightState=HIGH);
 		PT_DELAY(pt,10,ts);
 		set_motor(1);
 		PT_WAIT_WHILE(pt,IS_TRACKER_LEFT());
 		PT_DELAY(pt,10,ts);
 		set_motor(0);
 	}
+
+	PT_END(pt);
 }
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskAutoSwitch(struct pt* pt)){
@@ -190,58 +200,7 @@ PT_THREAD(taskReadLight(struct pt* pt)){
 	
 	PT_END(pt);
 }
-
 /////////////////////////////////////////////////////////////
-PT_THREAD(taskMoveMotor(struct pt* pt)){
-	
-	static uint32_t ts;
-
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		set_motor(motorValue);
-		PT_DELAY(pt,10,ts);
-	}
-	PT_END(pt);
-	
-}
-PT_THREAD(taskReadTrackerLeft(struct pt* pt)){
-	
-	static uint32_t ts;
-
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
-		PT_DELAY(pt,10,ts);
-		set_led_portB(LED_H1,ON);
-		PT_WAIT_WHILE(pt,IS_TRACKER_LEFT());
-		PT_DELAY(pt,10,ts);
-		set_led_portB(LED_H1,OFF);
-	}
-	
-	PT_END(pt);
-}
-PT_THREAD(taskReadTrackerRight(struct pt* pt)){
-	
-	static uint32_t ts;
-
-	PT_BEGIN(pt);
-
-	for(;;)
-	{
-		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
-		PT_DELAY(pt,10,ts);
-		set_led_portB(LED_H2,ON);
-		PT_WAIT_WHILE(pt,IS_TRACKER_RIGHT());
-		PT_DELAY(pt,10,ts);
-		set_led_portB(LED_H2,OFF);
-	}
-	
-	PT_END(pt);
-}
 int main()
 {
 	init_peripheral();
@@ -252,13 +211,11 @@ int main()
 	PT_INIT(&pt_taskAutoSwitch);
 	PT_INIT(&pt_taskManualSwitch);
 	PT_INIT(&pt_taskReadLight);
-	PT_INIT(&pt_taskMoveMotor);
-	PT_INIT(&pt_taskReadTrackerLeft);
-	PT_INIT(&pt_taskReadTrackerRight);
 	PT_INIT(&pt_taskCheckLight);
 	PT_INIT(&pt_taskCloseCurtain);
 
-	for(;;){
+	for(;;)
+	{
 		taskReadLight(&pt_taskReadLight);
 		/*	
 		taskManualSwitch(&pt_taskManualSwitch);
