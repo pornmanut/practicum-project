@@ -21,7 +21,7 @@ void init_peripheral()
 
 	/*	PORTD
 	 *	MOTOR PD1 PD6
-	 *
+	 *  TRACKER PD0 PD5
 	 */
 
 	DDRD = 0b1000010;

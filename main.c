@@ -24,9 +24,13 @@
 #define IS_AUTOSWITCH_PRESSED() !(PINC & (1<<PC2))
 #define IS_MANUALSWITCH_PRESSED() !(PINC & (1<<PC4))
 
+#define IS_TRACKER_LEFT() !(PIND & (1<<PD0))
+#define IS_TRACKER_RIGHT() !(PIND & (1<<PD5))
+
 #define PT_DELAY(pt,ms,ts) \
 	ts = timer_millis();\
 	PT_WAIT_WHILE(pt,timer_millis()-ts <(ms));
+
 
 
 struct pt pt_taskHColor;
@@ -35,6 +39,7 @@ struct pt pt_taskAutoSwitch;
 struct pt pt_taskManualSwitch;
 struct pt pt_taskReadLight;
 struct pt pt_taskMoveMotor;
+struct pt pt_taskReadTracker;
 
 uint16_t lightValue = 0;
 uint8_t motorValue = 0;
@@ -162,25 +167,43 @@ PT_THREAD(taskMoveMotor(struct pt* pt)){
 	PT_END(pt);
 	
 }
+PT_THREAD(taskReadTracker(struct pt* pt)){
+	
+	static uint32_t ts;
+
+	PT_BEGIN(pt);
+
+	for(;;)
+	{
+		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
+		PT_DELAY(pt,10,ts);
+		set_led_portB(LED_H1,ON);
+		PT_WAIT_WHILE(pt,IS_TRACKER_LEFT());
+		PT_DELAY(pt,10,ts);
+		set_led_portB(LED_H1,OFF);
+	}
+	
+	PT_END(pt);
+}
 int main()
 {
 	init_peripheral();
 	timer_init();
 	sei();
 
-	PT_INIT(&pt_taskHColor);
 	PT_INIT(&pt_taskLColor);
 	PT_INIT(&pt_taskAutoSwitch);
 	PT_INIT(&pt_taskManualSwitch);
 	PT_INIT(&pt_taskReadLight);
 	PT_INIT(&pt_taskMoveMotor);
+	PT_INIT(&pt_taskReadTracker);
 
 	for(;;){
 		taskReadLight(&pt_taskReadLight);
 		taskManualSwitch(&pt_taskManualSwitch);
-		taskHColor(&pt_taskHColor);
 		taskLColor(&pt_taskLColor);
 		taskAutoSwitch(&pt_taskAutoSwitch);
 		taskMoveMotor(&pt_taskMoveMotor);
+		taskReadTracker(&pt_taskReadTracker);
 	}
 }
