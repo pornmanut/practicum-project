@@ -1,8 +1,10 @@
 TARGET=main
 MCU=atmega168
 F_CPU=16000000
-CFLAGS=-mmcu=$(MCU) -Os -DF_CPU=$(F_CPU) -Iusbdrv -I.
-OBJS=peri.o timer.o
+DHTXX_TIMEOUT = 60
+
+CFLAGS= -DDHTXX_TIMEOUT=$(DHTXX_TIMEOUT) -mmcu=$(MCU) -Os -DF_CPU=$(F_CPU) -Iusbdrv -I.
+OBJS=peri.o timer.o ./obj/dhtxx.o
 USB_OBJS=usbdrv/usbdrv.o usbdrv/usbdrvasm.o
 
 .SECONDARY:
