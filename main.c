@@ -11,16 +11,16 @@
 #define OFF 0
 #define ON 1
 
-#define LED_H1 PB5
-#define LED_H2 PB3
-#define LED_H3 PB1
+#define H1LED_PB PB5
+#define H2LED_PB PB3
+#define H3LED_PB PB1
 
-#define LED_L1 PB0
-#define LED_L2 PB2
-#define LED_L3 PB4
+#define L1LED_PB PB0
+#define L2LED_PB PB2
+#define L3LED_PB PB4
 
-#define LED_AUTO PC5
-#define LED_MANUAL PC3
+#define AUTOLED_PC PC5
+#define STATUSLED_PC PC3
 
 #define IS_AUTOSWITCH_PRESSED() !(PINC & (1<<PC2))
 #define IS_MANUALSWITCH_PRESSED() !(PINC & (1<<PC4))
@@ -40,57 +40,35 @@
 #define HIGH 3
 #define ULTRA_HIGH 4
 
-#define ULTRA_DRY 0
-#define DRY 1
-#define NORMAL 2
-#define WET 3
-#define ULTRA_WET 4
+#define DRY 2
+#define NORMAL 5
+#define WET 9
 
-#define CLOSE 0
-#define OPEN 1
+#define MOTOR_STOP 0
+#define MOTOR_FORWARD 1
+#define MOTOR_BACKWARD 2
 
-#define MANUALSTATE 0
-#define AUTOSTATE 1
+#define STATUS_OPEN 0
+#define STATUS_TO_CLOSE 1
+#define STATUS_CLOSE 2
+#define STATUS_TO_OPEN 3
 
-#define AUTO_IS_OPEN() ((humidState == ULTRA_WET || lightState==HIGH) && currentState==OPEN && state==AUTOSTATE)
-#define MANUAL_IS_OPEN() (currentState==OPEN && state==MANUALSTATE && status==ON)
-#define AUTO_IS_CLOSE() ((humidState == ULTRA_DRY || lightState==LOW) && currentState==CLOSE && state==AUTOSTATE)
-#define MANUAL_IS_CLOSE() (currentState==CLOSE && state == MANUALSTATE && status ==ON)
+#define AUTO_TO_CLOSE() (auto_state == ON && (light_state >= HIGH || humid_state >= WET))
+#define AUTO_TO_OPEN() (auto_state == ON && (light_state <= LOW || humid_state <= DRY))
 
 struct pt pt_taskReadWriteColor;
 struct pt pt_taskControlCurtain;
 struct pt pt_taskAutoSwitch;
-struct pt pt_taskManualSwitch;
-struct pt pt_taskReadDHT;
 
-uint8_t lightState = LOW;
-uint8_t currentState = OPEN;
-uint8_t state = AUTOSTATE;
-uint8_t status = OFF;
-uint8_t humidState = DRY;
+uint8_t light_state = LOW;
+uint8_t status = STATUS_OPEN;
+uint8_t auto_state = OFF;
+uint8_t humid_state = NORMAL;
+
 int humid = 0;
 int temp = 0;
 
 
-/////////////////////////////////////////////////////////////
-PT_THREAD(taskManualSwitch(struct pt* pt)){
-
-	static uint32_t ts;
-
-	PT_BEGIN(pt);
-	for(;;)
-	{
-		PT_WAIT_UNTIL(pt,IS_MANUALSWITCH_PRESSED());
-		PT_DELAY(pt,50,ts);
-		state = MANUALSTATE;	
-		status = (status+1)%2;
-
-		PT_WAIT_WHILE(pt,IS_MANUALSWITCH_PRESSED());
-		PT_DELAY(pt,50,ts);
-	}
-	PT_END(pt);
-
-}
 /////////////////////////////////////////////////////////////
 PT_THREAD(taskAutoSwitch(struct pt* pt)){
 	
@@ -100,12 +78,12 @@ PT_THREAD(taskAutoSwitch(struct pt* pt)){
 	for(;;)
 	{
 		PT_WAIT_UNTIL(pt,IS_AUTOSWITCH_PRESSED());
-		PT_DELAY(pt,50,ts);
+		PT_DELAY(pt,100,ts);
 		
-		state = (state+1)%2;
+		auto_state = (auto_state+1)%2;
 
 		PT_WAIT_WHILE(pt,IS_AUTOSWITCH_PRESSED());
-		PT_DELAY(pt,50,ts);
+		PT_DELAY(pt,100,ts);
 	}	
 	PT_END(pt);
 
@@ -114,51 +92,67 @@ PT_THREAD(taskAutoSwitch(struct pt* pt)){
 PT_THREAD(taskReadWriteColor(struct pt* pt)){
 	
 	static uint32_t ts;
+	static uint8_t blink=OFF;	
 	
 	PT_BEGIN(pt);
 
 	for(;;)
 	{
-		lightState = (int)(read_light()/300.0);
-		switch(humidState){
-			case ULTRA_DRY:
-				set_led_portB(LED_H1,ON);
-				set_led_portB(LED_H2,OFF);
-				break;
-			case DRY:
-			case NORMAL:
-			case WET:
-				set_led_portB(LED_H1,OFF);
-				set_led_portB(LED_H2,ON);
-				set_led_portB(LED_H3,OFF);
-				break;
-			case ULTRA_WET:	
-				set_led_portB(LED_H2,OFF);
-				set_led_portB(LED_H3,ON);
-				break;
+		/*	
+		*	readlight form cytocell
+		*	1023/300	
+		*	light_state = 0,1,2,3,4
+		*/
+		light_state = (int)(read_light()/300.0);
+	
+		/*show humid level*/
+		if(humid_state <= DRY){
+			set_led_portB(H1LED_PB,ON);
+			set_led_portB(H2LED_PB,OFF);
+		}else if(humid_state >= WET){
+			set_led_portB(H2LED_PB,OFF);
+			set_led_portB(H3LED_PB,ON);
+		}else{
+			set_led_portB(H1LED_PB,OFF);
+			set_led_portB(H2LED_PB,ON);
+			set_led_portB(H3LED_PB,OFF);
 		}
-		switch(lightState){
+		/*show light level*/
+		switch(light_state){
 			case ULTRA_LOW:
 			case LOW:
-				set_led_portB(LED_L1,ON);
-				set_led_portB(LED_L2,OFF);
+				set_led_portB(L1LED_PB,ON);
+				set_led_portB(L2LED_PB,OFF);
 				break;
 			case MEDIUM:
-				set_led_portB(LED_L2,ON);
-				set_led_portB(LED_L1,OFF);
-				set_led_portB(LED_L3,OFF);
+				set_led_portB(L2LED_PB,ON);
+				set_led_portB(L1LED_PB,OFF);
+				set_led_portB(L3LED_PB,OFF);
 				break;
 			case ULTRA_HIGH:
 			case HIGH:	
-				set_led_portB(LED_L3,ON);
-				set_led_portB(LED_L2,OFF);
+				set_led_portB(L3LED_PB,ON);
+				set_led_portB(L2LED_PB,OFF);
 				break;
 		}
-
-		set_led_portC(LED_MANUAL,currentState);	
-		set_led_portC(LED_AUTO,state);
-			
-		PT_DELAY(pt,50,ts);
+		/*show status*/	
+		switch(status){
+			case STATUS_OPEN:
+				set_led_portC(STATUSLED_PC,ON);
+				break;
+			case STATUS_CLOSE:
+				set_led_portC(STATUSLED_PC,OFF);
+				break;
+			case STATUS_TO_CLOSE:
+			case STATUS_TO_OPEN:
+				set_led_portC(STATUSLED_PC,blink);
+				blink = (blink+1)%2;
+				break;
+		}
+		/*show auto_state*/	
+		set_led_portC(AUTOLED_PC,auto_state);
+		/*delay for sure*/	
+		PT_DELAY(pt,100,ts);
 
 	}
 	PT_END(pt);
@@ -172,31 +166,43 @@ PT_THREAD(taskControlCurtain(struct pt* pt))
 
 	for(;;)
 	{
-		set_motor(0);
-		PT_WAIT_UNTIL(pt,AUTO_IS_OPEN() || MANUAL_IS_OPEN());
+		/*start with open*/
+		status = STATUS_OPEN;
+		set_motor(MOTOR_STOP);
+		
+		/*if manual have been pressed auto will turn off*/
+		PT_WAIT_UNTIL(pt,AUTO_TO_CLOSE() || IS_MANUALSWITCH_PRESSED());
+		if(IS_MANUALSWITCH_PRESSED()) auto_state = OFF;
+		
+		/*delay for sure*/	
 		PT_DELAY(pt,100,ts);
 		
-		status = OFF;
-		set_motor(2);
-
-		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
-		PT_DELAY(pt,50,ts);
-		
-		currentState = CLOSE;
-		PT_DELAY(pt,100,ts);
-		
-		set_motor(0);
-		PT_WAIT_UNTIL(pt,AUTO_IS_CLOSE() || MANUAL_IS_CLOSE());
-		PT_DELAY(pt,100,ts);
-		
-		status = OFF;
-		set_motor(1);
-		
+		/*motor going to moving*/	
+		status = STATUS_TO_CLOSE;
+		set_motor(MOTOR_BACKWARD);
+			
+		/*Wait for the end of line*/
 		PT_WAIT_UNTIL(pt,IS_TRACKER_LEFT());
-		PT_DELAY(pt,50,ts);
+		if(IS_MANUALSWITCH_PRESSED()) auto_state = OFF;
+		PT_DELAY(pt,150,ts);
+		
+		/*stop*/	
+		status = STATUS_CLOSE;	
+		set_motor(MOTOR_STOP);
 
-		currentState = OPEN;
+		/*wait for new order*/
+		PT_WAIT_UNTIL(pt,AUTO_TO_OPEN() || IS_MANUALSWITCH_PRESSED());
+		if(IS_MANUALSWITCH_PRESSED()) auto_state = OFF;
+		
 		PT_DELAY(pt,100,ts);
+		/*motor goint to moving*/	
+		status = STATUS_TO_OPEN;
+		set_motor(MOTOR_FORWARD);
+
+		/*Wait for the start of line*/	
+		PT_WAIT_UNTIL(pt,IS_TRACKER_RIGHT());
+		if(IS_MANUALSWITCH_PRESSED()) auto_state = OFF;
+		PT_DELAY(pt,150,ts);
 	}
 
 	PT_END(pt);
@@ -208,7 +214,7 @@ uint8_t read_humid(){
 	dhtxxconvert(DHTXX_DHT22,&PORTC,&DDRC,&PINC,(1<<DHT_PC));
 	_delay_ms(200);	
 	e = dhtxxread(DHTXX_DHT22,&PORTC,&DDRC,&PINC,(1<<DHT_PC),&temp,&humid);
-	humidState = (int)(humid-500)/100;
+	humid_state = (int)(humid/100);
 	return e;
 }
 
@@ -221,7 +227,6 @@ int main()
 	PT_INIT(&pt_taskReadWriteColor);
 	PT_INIT(&pt_taskControlCurtain);
 	PT_INIT(&pt_taskAutoSwitch);
-	PT_INIT(&pt_taskManualSwitch);	
 
 	for(;;)
 	{
@@ -229,6 +234,5 @@ int main()
 		taskReadWriteColor(&pt_taskReadWriteColor);
 		taskControlCurtain(&pt_taskControlCurtain);
 		taskAutoSwitch(&pt_taskAutoSwitch);
-		taskManualSwitch(&pt_taskManualSwitch);
 	}
 }
