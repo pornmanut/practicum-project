@@ -41,7 +41,7 @@ Hardware (Board and microcontroller)
 Other
 - LICENSE.txt 	
 - README.txt		
-- Schematic.png
+- Schematic.pdf
 
 ======================= Libraries =======================
 C / HARDWARE
